@@ -1,0 +1,39 @@
+# 依赖与构建产物
+node_modules/
+dist/
+
+# 本仓库仅收录日程站（todo）；其余站点/编排/文档/工作流保留在本地工作区，不入库
+/blog-api/
+/blog-web/
+/game-web/
+/deploy/
+/docs/
+/.github/
+
+# 环境变量（.env.example 保留入库）
+.env
+.env.local
+
+# 服务器运行时数据（在服务器上生成，不入库）
+deploy/certs/*
+!deploy/certs/README.md
+deploy/data/
+deploy/sites/*
+!deploy/sites/README.md
+!deploy/sites/blog/index.html
+!deploy/sites/game/index.html
+!deploy/sites/schedule/index.html
+
+# 本地开发产物
+blog-api/uploads/
+schedule-api/tmp/
+*.log
+.DS_Store
+
+# IDE 交付报告画布（本地查看用，不入库）
+*.canvas.tsx
+*.canvas.*.json
+
+# 部署打包产物（临时上传用，不入库）
+*.tar.gz
+*.zip

@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  nickname     String
+  timezone     String   @default("Asia/Shanghai")
+  notifyChannel String  @default("none") // none | serverchan | dingtalk
+  notifyToken  String?  @db.VarChar(1000) // Server酱 SendKey；钉钉存 "webhookUrl|secret"
+  notifyBefore Int      @default(15) // 默认提前提醒分钟数
+  /// 用户自填的 DeepSeek Key（AES-256-GCM 加密落库）；为空时回退服务器环境变量 DEEPSEEK_API_KEY
+  deepseekKey        String?  @db.VarChar(500)
+  /// 用户指定的文本识别模型；为空回退服务器 DEEPSEEK_MODEL（默认 deepseek-chat）
+  deepseekModel      String?  @db.VarChar(100)
+  /// 用户指定的视觉模型名；为空表示该用户仅文字识别
+  deepseekVisionModel String? @db.VarChar(100)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lists   EventList[]
+  events  Event[]
+  batches AiParseBatch[]
+  logs    NotifyLog[]
+}
+
+/// 清单（工作 / 生活 / 项目…），用于给日程分组配色
+model EventList {
+  id        Int    @id @default(autoincrement())
+  userId    Int
+  name      String
+  color     String @default("#409EFF")
+  sortOrder Int    @default(0)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events Event[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Event {
+  id       Int    @id @default(autoincrement())
+  userId   Int
+  listId   Int?
+  title    String
+  notes    String? @db.Text
+  location String?
+  allDay   Boolean @default(false)
+  /// UTC 存储；全天事件存该日期在用户时区下的 00:00 对应时刻
+  startAt  DateTime
+  endAt    DateTime?
+  /// 重复规则，例如 RRULE:FREQ=WEEKLY;BYDAY=MO,WE
+  rrule    String?  @db.VarChar(255)
+  status   String   @default("todo") // todo | doing | done | cancelled
+  priority String   @default("medium") // low | medium | high | urgent
+  remind   Boolean  @default(true)
+  /// 覆盖 User.notifyBefore，为空则用用户默认值
+  remindBefore Int?
+  notifiedAt   DateTime?
+  source       String    @default("manual") // manual | ai
+  batchId      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list        EventList?        @relation(fields: [listId], references: [id], onDelete: SetNull)
+  occurrences EventOccurrence[]
+
+  @@index([userId, startAt])
+  @@index([userId, status])
+  @@index([batchId])
+}
+
+/// 重复日程在某个时间窗内展开出的单次实例（懒生成）
+/// 用于持久化「仅完成这一次」的状态与推送标记
+model EventOccurrence {
+  id         Int      @id @default(autoincrement())
+  eventId    Int
+  userId     Int
+  occurAt    DateTime
+  status     String   @default("todo") // todo | doing | done | cancelled
+  notifiedAt DateTime?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, occurAt])
+  @@index([userId, occurAt, status])
+}
+
+/// 一次 AI 图文识别产生的草稿批次
+model AiParseBatch {
+  id     String @id @default(cuid())
+  userId Int
+  rawText String @db.Text
+  /// string[]，临时图片 URL
+  images Json
+  model  String
+  status String   @default("pending") // pending | confirmed | discarded
+  /// { promptTokens, completionTokens }
+  usage  Json?
+  createdAt DateTime @default(now())
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items AiParseItem[]
+
+  @@index([userId, createdAt])
+}
+
+model AiParseItem {
+  id      Int    @id @default(autoincrement())
+  batchId String
+  userId  Int
+  /// 结构化草稿：title/startAt/endAt/allDay/rrule/location/notes/priority/listName/remindBefore/needsReview/confidence
+  payload  Json
+  selected Boolean @default(true)
+  /// 确认入库后回填对应 Event.id
+  eventId Int?
+
+  batch AiParseBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+}
+
+/// 提醒推送记录（成功与失败都记，便于排查）
+model NotifyLog {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  eventId      Int?
+  occurrenceId Int?
+  channel      String
+  title        String
+  ok           Boolean
+  error        String?  @db.VarChar(500)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

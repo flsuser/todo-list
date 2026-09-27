@@ -1,0 +1,194 @@
+:root {
+  /* 优先级配色，与 utils/color.ts 中的映射保持一致 */
+  --prio-low: #909399;
+  --prio-medium: #409eff;
+  --prio-high: #e6a23c;
+  --prio-urgent: #f56c6c;
+
+  --bg-page: #f5f7fa;
+  --bg-panel: #ffffff;
+  --border-light: #e4e7ed;
+  --text-main: #303133;
+  --text-sub: #909399;
+
+  /* 时间轴每 30 分钟一格的高度 */
+  --slot-h: 26px;
+  --time-col-w: 58px;
+
+  --sidebar-w: 236px;
+  --header-h: 56px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text-main);
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    Arial, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---------- 通用布局 ---------- */
+
+.page {
+  padding: 16px 20px 28px;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.panel-body {
+  padding: 16px;
+}
+
+.muted {
+  color: var(--text-sub);
+}
+
+.empty-tip {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--text-sub);
+}
+
+/* ---------- 优先级圆点与色条 ---------- */
+
+.prio-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.prio-low {
+  background: var(--prio-low);
+}
+.prio-medium {
+  background: var(--prio-medium);
+}
+.prio-high {
+  background: var(--prio-high);
+}
+.prio-urgent {
+  background: var(--prio-urgent);
+}
+
+/* ---------- 拖拽中的视觉反馈 ---------- */
+
+/* 拖拽进行中：统一鼠标手势并禁止选中文本 */
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.dragging {
+  opacity: 0.55;
+}
+
+.drop-active {
+  background: #ecf5ff;
+  outline: 1px dashed var(--prio-medium);
+}
+
+/* 滚动条：日历时间轴区域较长，统一细一点的样式 */
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: #c8c9cc;
+  border-radius: 4px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- 移动端适配 ---------- */
+
+@media (max-width: 900px) {
+  .page {
+    padding: 10px 12px 20px;
+  }
+
+  .panel-head {
+    padding: 10px 12px;
+  }
+
+  .panel-body {
+    padding: 12px;
+  }
+
+  .panel-title {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 8px 10px 16px;
+  }
+
+  /* 确认框/消息在窄屏不要顶满 */
+  .el-message-box {
+    width: 88vw !important;
+  }
+
+  /* 表单标签改为顶部排列，避免窄屏标签挤压输入框 */
+  .el-form-item {
+    display: block;
+  }
+
+  .el-form-item__label {
+    width: auto !important;
+    display: block;
+    text-align: left;
+    line-height: 1.4;
+    padding: 0 0 4px !important;
+  }
+
+  .el-form-item__content {
+    margin-left: 0 !important;
+  }
+
+  /* 标签页在窄屏允许横向滑动，避免后面的标签点不到 */
+  .el-tabs__nav-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
